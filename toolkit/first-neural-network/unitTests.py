@@ -1,5 +1,5 @@
 import unittest
-from setup import *
+from setup import * #note that "import setup" doesnt work here because thats just for liberaries
 from my_answers import NeuralNetwork
 
 def MSE(y, Y):

@@ -3,7 +3,7 @@ import numpy as np
 
 class NeuralNetwork(object):
     #constructor
-    def __init__(self, input_nodes, hidden_nodes, output_nodes, learning_rate):
+    def __init__(self, input_nodes, hidden_nodes, output_nodes, learning_rate, verbose=False):
         # Set number of nodes in input, hidden and output layers.
         self.input_nodes = input_nodes
         self.hidden_nodes = hidden_nodes
@@ -30,6 +30,8 @@ class NeuralNetwork(object):
         #def sigmoid(x):
         #    return 0  # Replace 0 with your sigmoid calculation here
         #self.activation_function = sigmoid
+
+        self.verbose = verbose
                     
 
     def train(self, features, targets):
@@ -99,29 +101,33 @@ class NeuralNetwork(object):
         #print(output_error_term*self.weights_hidden_to_output)
         #hidden_error = np.dot(output_error_term, self.weights_hidden_to_output)
         #hidden_error = np.dot(self.weights_hidden_to_output, output_error_term)
-        print("output_error_term:")
-        print(output_error_term)
-        print("\n")
-        print("weights_hidden_to_output:")
-        print(self.weights_hidden_to_output)
-        print("\n")
+        if self.verbose:
+            print("output_error_term:")
+            print(output_error_term)
+            print("\n")
+            print("weights_hidden_to_output:")
+            print(self.weights_hidden_to_output)
+            print("\n")
         hidden_error = output_error_term*self.weights_hidden_to_output
-        print("hiddenError:")
-        print(hidden_error)
-        print("\n")
+        if self.verbose:
+            print("hiddenError:")
+            print(hidden_error)
+            print("\n")
         
         ''' hs note: This is the error of the hidden layer before it passed through
             the sigmoid so we have to multiply by derivative of sigmoid.
             hidden_error_term = hidden_error * derivativeOfSigmoid(hidden_outputs).
             Below is for sigmoid
         '''
-        print("hidden_outputs[:,None]:")
-        print(hidden_outputs[:,None])
-        print("\n")
+        if self.verbose:
+            print("hidden_outputs[:,None]:")
+            print(hidden_outputs[:,None])
+            print("\n")
         hidden_error_term = hidden_error * hidden_outputs[:,None] * (1 - hidden_outputs[:,None])
-        print("hidden_error_term:")
-        print(hidden_error_term)
-        print("\n")
+        if self.verbose:
+            print("hidden_error_term:")
+            print(hidden_error_term)
+            print("\n")
 
         ''' hs note: This is the change in weights  GD should make == 
             update term (i.e weight step) for the w(s)from last hidden unit, 
@@ -130,12 +136,13 @@ class NeuralNetwork(object):
             the update term for w of each node, is the last update for the w(s) 
             of that node (last delta w) + theErrorTheNodeMade*TheInputToTheNode
         '''
-        print("delta_weights_h_o:")
-        print(delta_weights_h_o)
-        print("\n")
-        print("output_error_term * hidden_outputs[:,None]")
-        print(output_error_term * hidden_outputs[:,None])
-        print("\n")
+        if self.verbose:
+            print("delta_weights_h_o:")
+            print(delta_weights_h_o)
+            print("\n")
+            print("output_error_term * hidden_outputs[:,None]")
+            print(output_error_term * hidden_outputs[:,None])
+            print("\n")
         #delta_weights_h_o += output_error_term * hidden_outputs
         delta_weights_h_o += output_error_term * hidden_outputs[:, None]
 
@@ -145,15 +152,16 @@ class NeuralNetwork(object):
             is row vector, but we always perform all calculations in terms of column
             vectors. 
         '''
-        print("delta_weights_i_h:")
-        print(delta_weights_i_h)
-        print("\n")
-        print("X:")
-        print(X)
-        print("\n")
-        print("(hidden_error_term * X).T :")
-        print((hidden_error_term * X).T  )
-        print("\n")
+        if self.verbose:
+            print("delta_weights_i_h:")
+            print(delta_weights_i_h)
+            print("\n")
+            print("X:")
+            print(X)
+            print("\n")
+            print("(hidden_error_term * X).T :")
+            print((hidden_error_term * X).T  )
+            print("\n")
         #delta_weights_i_h += hidden_error_term * X[:, None]
         #delta_weights_i_h += hidden_error_term * X
         #delta_weights_i_h += X[:, None] * hidden_error_term[:,None] 
@@ -200,7 +208,7 @@ class NeuralNetwork(object):
 #########################################################
 # Set your hyperparameters here
 ##########################################################
-iterations = 100
+iterations = 2000
 learning_rate = 0.1
-hidden_nodes = 4
+hidden_nodes = 8
 output_nodes = 1
