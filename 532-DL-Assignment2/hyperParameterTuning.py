@@ -45,6 +45,32 @@ for entry in mscoco_val['annotations']:
 ############ END: Load COCO DATA AND ImageNet labels ##########
 
 
+###############################################################
+############## START: Load Image Helper Method ################
+###############################################################
+img_size = 224
+loader = transforms.Compose([
+  transforms.Scale(img_size),
+  transforms.CenterCrop(img_size),
+  transforms.ToTensor(),
+]) 
+def load_image(filename):
+    """
+    Simple function to load and preprocess the image.
+
+    1. Open the image.
+    2. Scale/crop it and convert it to a float tensor.
+    3. Convert it to a variable (all inputs to PyTorch models must be variables).
+    4. Add another dimension to the start of the Tensor (b/c VGG expects a batch).
+    5. Move the variable onto the GPU.
+    """
+    image = Image.open(filename).convert('RGB')
+    image_tensor = loader(image).float()
+    image_var = Variable(image_tensor).unsqueeze(0)
+    return image_var.cuda(device_id=0)
+################ END: Load Image Helper Method ################
+
+
 print("hs loaded COCO data\n");
 
 
@@ -72,11 +98,6 @@ class MyEndToEndModel(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.endToEnd_model.classifier(x)
         return x
-    
-    def save_checkpoint(self, state, is_best, filename='MyEndToEndModel_checkpoint.pth.tar'):
-        torch.save(state, filename)
-        if is_best:
-            shutil.copyfile(filename, 'MyEndToEndModel_best.pth.tar')
     
 
 model = MyEndToEndModel()
@@ -169,7 +190,7 @@ print("hs loaded validation set data\n");
 ###############################################################
 ################# START: Training method ######################
 ###############################################################
-def train(model, learning_rate, batch_size, epochs):
+def train(model, learning_rate, batch_size, epochs=3):
     losses = {'train':[], 'validation':[]}
 
     #define a dataLoader for training data and labels
@@ -215,7 +236,7 @@ def train(model, learning_rate, batch_size, epochs):
             
             pred = sigmoid(model(img))
 
-            valRunningLoss += criterion(outputs, labels)
+            valRunningLoss += criterion(outputs, labels).data[0]
         
         losses['validation'].append(valRunningLoss / len(val_ids))
 
@@ -226,12 +247,53 @@ def train(model, learning_rate, batch_size, epochs):
 ################### END: Training method ######################
 
 
+
+###############################################################
+########## START: Finding the best hyper parameters ###########
+###############################################################
+learningRates = [0.0001, 0.001, 0.01]
+batchSizes = [25, 50, 100]
+
+for curBS in batchSizes:
+    for curLR in learningRates:
+        curLosses = train(model, curLR, curBS)
+
+        fileName = "losses-alp_" + str(curLR) + "_batch_" + str(curBS) + ".pth.tar"
+        torch.save({
+            'TrainingLoss':curLosses['train'],
+            'ValidationLoss':curLosses['validation'],
+            'LearningRate':curLR,
+            'BatchSize':curBS,
+        }, fileName)
+
+        '''
+        trGraphName = "Training loss Vs. epoch for LearningRate = " + str(curLR) + ", and BatchSize = " + str(curBS)
+        valGraphName = "Validation loss Vs. epoch for LearningRate = " + str(curLR) + ", and BatchSize = " + str(curBS)
+        
+        plt.plot(curLosses['train'], label=trGraphName)
+        plt.plot(curLosses['validation'], label=valGraphName)
+        plt.legend()
+        _ = plt.ylim()
+        '''
+############ END: Finding the best hyper parameters ###########
+
+
+
+
 '''
 ###############################################################
 ############## START: Loading Saved Models ####################
 ###############################################################
-
 import os
+
+if os.path.isfile("losses-alp_0.001_batch_25.pth.tar"):
+            print("=> loading checkpoint '{}'".format("losses-alp_0.001_batch_25.pth.tar"))
+            checkpoint = torch.load("losses-alp_0.001_batch_25.pth.tar")
+            curLosses = {'train':checkpoint['TrainingLoss'], 'validation':checkpoint['ValidationLoss']}
+            curLR = checkpoint['LearningRate']
+            curBS = checkpoint['BatchSize']
+
+
 if os.path.isfile("checkpoint.pth.tar"):
             print("=> loading checkpoint '{}'".format("checkpoint.pth.tar"))
             checkpoint = torch.load("checkpoint.pth.tar")
@@ -266,3 +328,4 @@ plt.plot(losses['validation'], label='Validation loss')
 plt.legend()
 _ = plt.ylim()
 ################### END: Printing losses ######################
+'''
