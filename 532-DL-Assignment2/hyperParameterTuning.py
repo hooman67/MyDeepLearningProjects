@@ -190,8 +190,8 @@ print("hs loaded validation set data\n");
 ###############################################################
 ################# START: Training method ######################
 ###############################################################
-def train(model, learning_rate, batch_size, epochs=3):
-    losses = {'train':[], 'validation':[]}
+def train(model, learning_rate, batch_size, epochs=1):
+    losses = {'train':[], 'validation':[], 'TraPerEpoch':[], 'ValPerEpoch':[]}
 
     #define a dataLoader for training data and labels
     trainingsetLoader = torch.utils.data.DataLoader(trainingset, batch_size=batch_size,
@@ -209,6 +209,7 @@ def train(model, learning_rate, batch_size, epochs=3):
 
     for epoch in range(epochs):  # loop over the dataset multiple times
         trainRunningLoss = 0.0
+        epochRunningLoss = 0.0
         for i, (data, label) in enumerate(zip(trainingsetLoader, trainingsetLabelLoader)):
             # wrap the data and labels from each batch in Variables
             inputs = Variable(data.cuda()) #remove .cuda to not put model on GPU
@@ -225,8 +226,23 @@ def train(model, learning_rate, batch_size, epochs=3):
 
             # print statistics and update running loss
             trainRunningLoss += loss.data[0]
-            print("epoch: ",epoch, ", batch: ", i,", produced loss of", loss.data[0])
+            epochRunningLoss += loss.data[0]
 
+            if i % 100 == 0:
+                losses['TraPerEpoch'].append(epochRunningLoss / 100)
+                epochRunningLoss = 0.0
+
+                valRunningLoss = 0.0
+                for image_id in val_ids[:]:            
+                    img = load_image(val_id_to_file[image_id])
+                    
+                    pred = sigmoid(model(img))
+
+                    valRunningLoss += criterion(outputs, labels).data[0]
+                
+                losses['ValPerEpoch'].append(valRunningLoss / len(val_ids))
+
+                print("epoch: ",epoch, ", batch: ", i,", avg Training loss ", loss.data[0], "  validation loss ", valRunningLoss)
 
         losses['train'].append(trainRunningLoss / len(trainingsetLoader))
 
@@ -252,7 +268,7 @@ def train(model, learning_rate, batch_size, epochs=3):
 ########## START: Finding the best hyper parameters ###########
 ###############################################################
 learningRates = [0.0001, 0.001, 0.01]
-batchSizes = [25, 50, 100]
+batchSizes = [50, 100]
 
 for curBS in batchSizes:
     for curLR in learningRates:
@@ -264,68 +280,56 @@ for curBS in batchSizes:
             'ValidationLoss':curLosses['validation'],
             'LearningRate':curLR,
             'BatchSize':curBS,
+            'TrLossPerEpoch':curLosses['TraPerEpoch'],
+            'ValLossPerEpoch':curLosses['ValPerEpoch'],
         }, fileName)
-
-        '''
-        trGraphName = "Training loss Vs. epoch for LearningRate = " + str(curLR) + ", and BatchSize = " + str(curBS)
-        valGraphName = "Validation loss Vs. epoch for LearningRate = " + str(curLR) + ", and BatchSize = " + str(curBS)
-        
-        plt.plot(curLosses['train'], label=trGraphName)
-        plt.plot(curLosses['validation'], label=valGraphName)
-        plt.legend()
-        _ = plt.ylim()
-        '''
 ############ END: Finding the best hyper parameters ###########
 
 
-
-
-'''
 ###############################################################
 ############## START: Loading Saved Models ####################
 ###############################################################
-import os
-
-if os.path.isfile("losses-alp_0.001_batch_25.pth.tar"):
-            print("=> loading checkpoint '{}'".format("losses-alp_0.001_batch_25.pth.tar"))
-            checkpoint = torch.load("losses-alp_0.001_batch_25.pth.tar")
-            curLosses = {'train':checkpoint['TrainingLoss'], 'validation':checkpoint['ValidationLoss']}
-            curLR = checkpoint['LearningRate']
-            curBS = checkpoint['BatchSize']
-
-
-if os.path.isfile("checkpoint.pth.tar"):
-            print("=> loading checkpoint '{}'".format("checkpoint.pth.tar"))
-            checkpoint = torch.load("checkpoint.pth.tar")
-            start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
-            model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded checkpoint '{}' (epoch {}) (batch {}) (error {})"
-                  .format("checkpoint.pth.tar", checkpoint['epoch'], checkpoint['batch'], checkpoint['val_error']))
-
+def loadSavedModel(filename):
+if os.path.isfile('./losses-alp_0.0001_batch_25.pth.tar'):
+    print("=> loading checkpoint '{}'".format('./losses-alp_0.0001_batch_25.pth.tar'))
+    checkpoint = torch.load('./losses-alp_0.0001_batch_25.pth.tar')
+    start_epoch = checkpoint['epoch']
+    best_prec1 = checkpoint['best_prec1']
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    print("=> loaded checkpoint '{}' (epoch {}) (batch {}) (error {})"
+          .format("checkpoint.pth.tar", checkpoint['epoch'], checkpoint['batch'], checkpoint['val_error']))
+else:
+    print("reeeedim!!")
 ################ END: Loading Saved Models ####################
 
 
+###############################################################
+########### START: Loading Saved hyper-Params #################
+###############################################################
+def loadHyperParamResult(filename):
+    if os.path.isfile('./losses-alp_0.0001_batch_25.pth.tar'):
+        checkpoint = torch.load('./losses-alp_0.0001_batch_25.pth.tar')
+        curLosses = {'train':checkpoint['TrainingLoss'], 'validation':checkpoint['ValidationLoss']}
+        curLR = checkpoint['LearningRate']
+        curBS = checkpoint['BatchSize']
+        print(checkpoint)
+    else:
+        print("reeeedim!!")
+############# END: Loading Saved hyper-Params #################
+
 
 ###############################################################
-################# START: Printing losses ######################
+############ START: Helper for Plotting losses ################
 ###############################################################
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-
-losses = {'train':[], 'validation':[]}
-
-for i in range(40):
-    losses['train'].append(i)
-    losses['validation'].append(i*2)
-
-
-plt.plot(losses['train'], label='Training loss')
-plt.plot(losses['validation'], label='Validation loss')
-plt.legend()
-_ = plt.ylim()
-################### END: Printing losses ######################
-'''
+def plotResult(curLosses, curLR, curBS):
+    plt.figure(0)
+    plt.plot(curLosses['train'], label="Training loss")
+    plt.plot(curLosses['validation'], label="Validation loss")
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.title('Losses for LearningRate = ',curLR,',  BatchSize = ',curBS)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+############## END: Helper for Plotting losses ################
