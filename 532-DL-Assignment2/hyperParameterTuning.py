@@ -289,10 +289,12 @@ for curBS in batchSizes:
 ###############################################################
 ############## START: Loading Saved Models ####################
 ###############################################################
+#example filename for script:'./losses-alp_0.0001_batch_25.pth.tar'
+#example filename for jupyter: 'losses-alp_0.0001_batch_25.pth.tar'
 def loadSavedModel(filename):
-if os.path.isfile('./losses-alp_0.0001_batch_25.pth.tar'):
-    print("=> loading checkpoint '{}'".format('./losses-alp_0.0001_batch_25.pth.tar'))
-    checkpoint = torch.load('./losses-alp_0.0001_batch_25.pth.tar')
+if os.path.isfile(filename):
+    print("=> loading checkpoint '{}'".format(filename))
+    checkpoint = torch.load(filename)
     start_epoch = checkpoint['epoch']
     best_prec1 = checkpoint['best_prec1']
     model.load_state_dict(checkpoint['state_dict'])
@@ -307,9 +309,11 @@ else:
 ###############################################################
 ########### START: Loading Saved hyper-Params #################
 ###############################################################
+#example filename for script:'./losses-alp_0.0001_batch_25.pth.tar'
+#example filename for jupyter: 'losses-alp_0.0001_batch_25.pth.tar'
 def loadHyperParamResult(filename):
-    if os.path.isfile('./losses-alp_0.0001_batch_25.pth.tar'):
-        checkpoint = torch.load('./losses-alp_0.0001_batch_25.pth.tar')
+    if os.path.isfile(filename):
+        checkpoint = torch.load(filename)
         curLosses = {'train':checkpoint['TrainingLoss'], 'validation':checkpoint['ValidationLoss']}
         curLR = checkpoint['LearningRate']
         curBS = checkpoint['BatchSize']
