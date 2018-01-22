@@ -318,6 +318,7 @@ def loadHyperParamResult(filename):
         curLR = checkpoint['LearningRate']
         curBS = checkpoint['BatchSize']
         print(checkpoint)
+        return curLosses, curLR, curBS
     else:
         print("reeeedim!!")
 ############# END: Loading Saved hyper-Params #################
