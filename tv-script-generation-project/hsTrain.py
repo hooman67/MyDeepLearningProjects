@@ -199,7 +199,7 @@ def build_nn(cell, rnn_size, input_data, vocab_size, embed_dim):
     outputs, FinalState = build_rnn(cell, input_embedded)
     #hs take the last output and apply sigmoid to it
     #Logits = tf.contrib.layers.fully_connected(outputs[:, -1], 1, activation_fn=tf.sigmoid)
-    Logits = tf.contrib.layers.fully_connected(outputs[:,:], vocab_size, activation_fn=tf.sigmoid)
+    Logits = tf.contrib.layers.fully_connected(outputs[:,:], vocab_size, activation_fn=None)
     return Logits, FinalState
 
 
@@ -351,9 +351,6 @@ with tf.Session(graph=train_graph) as sess:
                     batch_i,
                     len(batches),
                     train_loss))
-                saver = tf.train.Saver()
-                saver.save(sess, save_dir)
-                print('Saved temp Model')
 
     # Save Model
     saverFin = tf.train.Saver()
@@ -362,4 +359,3 @@ with tf.Session(graph=train_graph) as sess:
     # Save parameters for checkpoint
 
 helper.save_params((seq_length, save_dir_fin))
-helper.save_params((seq_length, './hsSaved'))
